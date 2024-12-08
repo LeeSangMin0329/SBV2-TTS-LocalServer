@@ -68,7 +68,6 @@ def try_play_audio():
         print(f"Error: {response.status_code}, {response.text}")
         return False
 
-
 def main():
     while True:
         message = input("Enter message: ")

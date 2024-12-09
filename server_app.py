@@ -1,43 +1,9 @@
-import asyncio
 import threading
-from queue import Queue
-from io import BytesIO
-from scipy.io import wavfile
 from flask import Flask, request, jsonify, send_file
-from model_loader import voice
-from model_settings import MODEL_NAME, ENCORDING_TYPE
 from server_settings import LOCAL_HOST, SERVER_PORT_NUMBER, HTTPStatus
+from tts_converter import run_worker, add_convert_request, get_convert_result, ProcessStatus
 
 app = Flask(__name__)
-
-# TODO: 태스크 결과 풀링하게 바꿀 것. 지금은 무한정 쌓임
-tasks = {}
-task_queue = Queue()
-
-async def process_voice_request(task_id, message):
-    try:
-        sample_rate, audio = await voice(message, ENCORDING_TYPE, MODEL_NAME, 0, MODEL_NAME, 0)
-
-        audio_buffer = BytesIO()
-        wavfile.write(audio_buffer, sample_rate, audio)
-        audio_buffer.seek(0)
-        
-        # 생성 완료 상태 업데이트
-        tasks[task_id] = {'status': 'completed', 'file': audio_buffer}
-    except Exception as e:
-        tasks[task_id] = {'status': 'failed', 'error': str(e)}
-    
-def worker():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    while True:
-        task_id, message = task_queue.get()
-
-        if task_id is None:
-            break
-
-        loop.run_until_complete(process_voice_request(task_id, message))
 
 @app.route('/generate_audio', methods=['POST'])
 def generate_audio():
@@ -48,11 +14,7 @@ def generate_audio():
 
     print(f"Target message : {str(message)}")
 
-    task_id = str(len(tasks) + 1)  # 고유한 작업 ID 생성
-    tasks[task_id] = {'status': 'in_progress'}
-
-    # 큐에 작업 넣기
-    task_queue.put((task_id, message))
+    task_id = add_convert_request(message)
 
     return jsonify({'task_id': task_id, 'status': 'in_progress'}), HTTPStatus.IN_PROGRESS
 
@@ -60,19 +22,37 @@ def generate_audio():
 def download_audio():
     task_id = request.args.get('task_id')
 
-    task = tasks.get(task_id)
-    if not task:
+    status, _, audio_buffer = get_convert_result(task_id)
+
+    if status == ProcessStatus.ERROR:
         return "Task not found", HTTPStatus.NOT_FOUND
     
-    if task['status'] == 'completed':
-        return send_file(task['file'], mimetype='audio/wav', as_attachment=True, download_name='output.wav')
+    if status == ProcessStatus.COMPLETED:
+        return send_file(audio_buffer, mimetype='audio/wav', as_attachment=True, download_name='output.wav'), HTTPStatus.COMPLETED
     
-    if task['status'] == 'in_progress':
+    if status == ProcessStatus.IN_PROGRESS:
         return jsonify({'status': 'in progress'}), HTTPStatus.IN_PROGRESS
     
-    return jsonify({'status': 'failed', 'error': task.get('error', 'Unknown error')}), HTTPStatus.UNKNOWN_ERROR
+    return jsonify({'status': 'failed', 'error': 'Unknown error'}), HTTPStatus.UNKNOWN_ERROR
+
+@app.route('/get_text_message', methods=['GET'])
+def get_text_message():
+    task_id = request.args.get('task_id')
+
+    status, message, _ = get_convert_result(task_id)
+
+    if status == ProcessStatus.ERROR:
+        return "Task not found", HTTPStatus.NOT_FOUND
+    
+    if status == ProcessStatus.COMPLETED:
+        return jsonify({'status': 'completed', 'message': message})
+    
+    if status == ProcessStatus.IN_PROGRESS:
+        return jsonify({'status': 'in progress'}), HTTPStatus.IN_PROGRESS
+    
+    return jsonify({'status': 'failed', 'error': 'Unknown error'}), HTTPStatus.UNKNOWN_ERROR
 
 if __name__ == '__main__':
     # 작업 큐와 작업자를 위한 별도 스레드
-    threading.Thread(target=worker, daemon=True).start()
+    threading.Thread(target=run_worker, daemon=True).start()
     app.run(host=LOCAL_HOST, port=SERVER_PORT_NUMBER)

@@ -35,23 +35,6 @@ def download_audio():
     
     return jsonify({'status': 'failed', 'error': 'Unknown error'}), HTTPStatus.UNKNOWN_ERROR
 
-@app.route('/get_text_message', methods=['GET'])
-def get_text_message():
-    task_id = request.args.get('task_id')
-
-    status, message, _ = get_convert_result(task_id)
-
-    if status == ProcessStatus.ERROR:
-        return "Task not found", HTTPStatus.NOT_FOUND
-    
-    if status == ProcessStatus.COMPLETED:
-        return jsonify({'status': 'completed', 'message': message})
-    
-    if status == ProcessStatus.IN_PROGRESS:
-        return jsonify({'status': 'in progress'}), HTTPStatus.IN_PROGRESS
-    
-    return jsonify({'status': 'failed', 'error': 'Unknown error'}), HTTPStatus.UNKNOWN_ERROR
-
 if __name__ == '__main__':
     # 작업 큐와 작업자를 위한 별도 스레드
     threading.Thread(target=run_worker, daemon=True).start()

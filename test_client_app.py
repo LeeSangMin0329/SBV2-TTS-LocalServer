@@ -13,7 +13,9 @@ task_id = 0
 def request_audio_generation(message):
     global task_id
 
-    response = requests.post(f"{server_url}/generate_audio", data={"message": message})
+    face = "Happy"
+    animation = "Idle"
+    response = requests.post(f"{server_url}/generate_audio", data={"message": message, "face": face, "anim": animation})
     
     if response.status_code == HTTPStatus.NO_MESSAGE:
         print("Error: No Message")
@@ -55,7 +57,7 @@ def try_play_audio():
     download_url = f"{server_url}/download_audio"
 
     # 다운로드 요청
-    response = requests.get(download_url, stream=True, params={"task_id": task_id})
+    response = requests.get(download_url, stream=True)
 
     if response.status_code == HTTPStatus.COMPLETED:
         sa.play_buffer(response.content, num_channels=1, bytes_per_sample=2, sample_rate=44100)
@@ -76,12 +78,12 @@ def main():
         if message is None:
             continue
 
-        sa.stop_all()
+        # sa.stop_all()
 
-        is_in_progress = True
-        while is_in_progress:
-            time.sleep(0.2)
-            is_in_progress = try_play_audio()
+        # is_in_progress = True
+        # while is_in_progress:
+        #     time.sleep(0.2)
+        #     is_in_progress = try_play_audio()
             
 
 

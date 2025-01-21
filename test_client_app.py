@@ -14,7 +14,7 @@ def request_audio_generation(message):
     global task_id
 
     face = "Happy"
-    animation = "Idle"
+    animation = "Think"
     response = requests.post(f"{server_url}/generate_audio", data={"message": message, "face": face, "anim": animation})
     
     if response.status_code == HTTPStatus.NO_MESSAGE:

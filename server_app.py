@@ -13,25 +13,27 @@ def generate_audio():
     message = request.form['message']
     face = request.form['face']
     animation = request.form['anim']
+    log_user = request.form['log_user']
+    log_answer = request.form['log_answer']
 
     if not message:
         return "No message provided", HTTPStatus.NO_MESSAGE
 
     print(f"Target message : {str(message)}")
 
-    task_id = add_convert_request(message, face, animation)
+    task_id = add_convert_request(message, face, animation, log_user, log_answer)
 
     return jsonify({'task_id': task_id, 'status': 'in_progress'}), HTTPStatus.IN_PROGRESS
 
 @app.route('/download_audio', methods=['GET'])
 def download_audio():
-    status, massage, face, animation, audio_buffer = get_convert_result()
+    status, message, face, animation, log_user, log_answer, audio_buffer = get_convert_result()
 
     if status == ProcessStatus.ERROR:
         return "Task not found", HTTPStatus.NOT_FOUND
     
     if status == ProcessStatus.COMPLETED:
-        json_data = {'face': face, 'anim': animation}
+        json_data = {'face': face, 'anim': animation, 'log_user': log_user, 'log_answer': log_answer}
         json_bytes = json.dumps(json_data).encode('utf-8')
 
         # 엔디안에 주의.

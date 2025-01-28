@@ -15,7 +15,9 @@ def request_audio_generation(message):
 
     face = "Happy"
     animation = "Think"
-    response = requests.post(f"{server_url}/generate_audio", data={"message": message, "face": face, "anim": animation})
+    log_user = "Test user"
+    log_answer = "Test answer"
+    response = requests.post(f"{server_url}/generate_audio", data={"message": message, "face": face, "anim": animation, "log_user": log_user, "log_answer": log_answer})
     
     if response.status_code == HTTPStatus.NO_MESSAGE:
         print("Error: No Message")

@@ -5,7 +5,7 @@ from io import BytesIO
 from scipy.io import wavfile
 from queue import Queue
 from model_loader import voice
-from model_settings import MODEL_NAME, ENCORDING_TYPE
+from model_settings import MODEL_NAME, SPEAKER_NAME, ENCORDING_TYPE
 
 class ProcessStatus(int, Enum):
     COMPLETED = 200
@@ -78,7 +78,7 @@ async def process_voice_request(task_id: str, message: str, face: str, animation
     try:
         start = time.time()
         
-        sample_rate, audio = await voice(message, ENCORDING_TYPE, MODEL_NAME, 0, MODEL_NAME, 0)
+        sample_rate, audio = await voice(message, ENCORDING_TYPE, MODEL_NAME, 0, SPEAKER_NAME, 0)
 
         audio_buffer = BytesIO()
         wavfile.write(audio_buffer, sample_rate, audio)

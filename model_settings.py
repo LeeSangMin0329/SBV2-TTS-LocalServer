@@ -9,4 +9,6 @@ BASE_DIR = Path(__file__).parent
 
 MODEL_DIR = Path("model_assets")
 
-MODEL_NAME = "Kaichou1"
+MODEL_NAME = "Kaichou1" # "amitaro"
+
+SPEAKER_NAME = "Kaichou1" # None
